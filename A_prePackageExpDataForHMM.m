@@ -10,8 +10,7 @@
 % This script loads 'SessionInfo' and converts the data inside into
 % 'spikes' and 'win_train'.
 %
-% You can choose to save the outputs or download the already-formed files
-% for use in the next step.
+% You can simply use the already-formed files in /ProcessedData for the next step.
 %
 % -LL 
 %
@@ -25,20 +24,12 @@ sessions = 1; % any value or range of values from 1 to 21
 preSampTime = 0.1; % spike trains clipped before preSampTime [s] before taste event
 postDecTime = 0.1; % spike trains clipped after postDecTime [s] after decision event
 minFR = 2; % neurons firing at < minFR [Hz] will be removed
-autoSaveOutput = false;
 
 %% setup and load data
 homeDir = pwd; addpath(homeDir);
-if ~exist('SessionInfo','var')
-    cd('RawData'); cd('Experiment');
-    load('SessionInfo.mat'); 
-    cd(homeDir);
-end
-if autoSaveOutput
-    cd('ProcessedData'); cd('Experiment');
-    saveDir = pwd;
-    cd(homeDir);
-end
+cd('RawData'); cd('Experiment');
+load('SessionInfo.mat'); 
+cd(homeDir);
 
 %% loop over sessions
 for session = sessions
@@ -80,12 +71,9 @@ for session = sessions
     end
     spikes_active = spikes;
     spikes_active(:,quietNeurons) = [];
-    % save output
-    if autoSaveOutput
-        cd(saveDir);
-        save(sprintf('spikes_exp%i.mat',session),'spikes_active');
-        save(sprintf('win_train_exp%i.mat',session),'win_train');
-        cd(homeDir);
-    end
+    
+    %save(sprintf('spikes_exp%i.mat',session),'spikes_active');
+    %save(sprintf('win_train_exp%i.mat',session),'win_train');
+    
     fprintf('Done.\n');
 end

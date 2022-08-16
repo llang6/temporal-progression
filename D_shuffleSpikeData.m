@@ -19,8 +19,7 @@
 % across time. This shuffle preserves cross-correlations (and firing rates)
 % and disrupts auto-correlations.
 %
-% You can choose to save the output or download the already-formed files
-% for the next step.
+% You can simply use the already-formed files in /ProcessedData for the next step.
 %
 % Refer to the definition of the main (local) function as well as the
 % optional output plots to see how the shuffling works.
@@ -42,16 +41,11 @@ sessionsExp = 1;
 sessionsSim = 245;
 binSize = 0.005; % bin size for swap shuffle
 isPlot = true;
-autoSaveOutput = false;
 
 %% setup 
 homeDir = pwd; addpath(homeDir); % gives access to helper functions in /+fun
 cd('ProcessedData'); cd('Experiment'); loadDir_exp = pwd; cd(homeDir);
 cd('ProcessedData'); cd('Simulation'); loadDir_sim = pwd; cd(homeDir);
-if autoSaveOutput
-    saveDir_exp = loadDir_exp;
-    saveDir_sim = loadDir_sim;
-end
 
 %% shuffle all the data
 % experiment
@@ -61,12 +55,10 @@ for session = sessionsExp
     win_train = fun.loadVar(sprintf('win_train_exp%i.mat',session));
     cd(homeDir);
     [spikes_shuff_circ,spikes_shuff_swap,circMap,swapMap] = main(spikes,win_train,binSize,isPlot);
-    if autoSaveOutput
-        cd(saveDir_exp);
-        save(sprintf('spikes_exp%i_shuff_circ.mat',session),spikes_shuff_circ);
-        save(sprintf('spikes_exp%i_shuff_swap.mat',session),spikes_shuff_swap);
-        cd(homeDir);
-    end
+
+    %save(sprintf('spikes_exp%i_shuff_circ.mat',session),spikes_shuff_circ);
+    %save(sprintf('spikes_exp%i_shuff_swap.mat',session),spikes_shuff_swap);
+
 end
 % simulation
 for session = sessionsSim
@@ -75,12 +67,10 @@ for session = sessionsSim
     win_train = fun.loadVar(sprintf('win_train_sim%i.mat',session));
     cd(homeDir);
     [spikes_shuff_circ,spikes_shuff_swap,circMap,swapMap] = main(spikes,win_train,binSize,isPlot);
-    if autoSaveOutput
-        cd(saveDir_sim);
-        save(sprintf('spikes_sim%i_shuff_circ.mat',session),spikes_shuff_circ);
-        save(sprintf('spikes_sim%i_shuff_swap.mat',session),spikes_shuff_swap);
-        cd(homeDir);
-    end
+    
+    %save(sprintf('spikes_sim%i_shuff_circ.mat',session),spikes_shuff_circ);
+    %save(sprintf('spikes_sim%i_shuff_swap.mat',session),spikes_shuff_swap);
+
 end
 
 %% plot results of shuffling an example trial

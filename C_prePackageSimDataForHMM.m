@@ -12,8 +12,7 @@
 % will not be fit to the spike trains of every neuron in the simulated
 % network.
 %
-% You can choose to save the outputs or download the already-formed files
-% for use in the next step.
+% You can simply use the already-formed files in /ProcessedData for the next step.
 %
 % -LL
 %
@@ -28,16 +27,11 @@ preStim = 0; % 0;
 postStim = 3; % 3;
 nSamp = 1; % 1; % sample this many neurons from each E cluster
 downsample = 14; % 14; % final size of sample (if < nSamp*(# clusters), we are 'downsampling')
-autoSaveOutput = false; % false;
 
 %% setup
 homeDir = pwd; addpath(homeDir);
 cd('RawData'); cd('Simulation'); 
 loadDir = pwd; cd(homeDir);
-if autoSaveOutput
-    cd('ProcessedData'); cd('Simulation'); 
-    saveDir = pwd; cd(homeDir);
-end
 
 %% loop over sessions
 for session = sessions
@@ -85,11 +79,9 @@ for session = sessions
             spikes(trial,neuron).spk = f(f>=win_train(trial,1)&f<=win_train(trial,2));
         end
     end
-    if autoSaveOutput
-        cd(saveDir);
-        save(sprintf('spikes_sim%i.mat',session),'spikes');
-        save(sprintf('win_train_sim%i.mat',session),'win_train');
-        cd(homeDir);
-    end
+    
+    %save(sprintf('spikes_sim%i.mat',session),'spikes');
+    %save(sprintf('win_train_sim%i.mat',session),'win_train');
+
     fprintf('Done.\n');
 end

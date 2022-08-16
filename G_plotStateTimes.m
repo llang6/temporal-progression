@@ -1,7 +1,7 @@
 %% plotStateTimes
 %
 % Generate the distribution of onset times plot for experiment or
-% simulation data.
+% simulation data (Figures 2 and 5).
 %
 % - LL
 %
@@ -26,19 +26,15 @@ excludedSessions = [5,7,17,19,20]; % experiment sessions 5,7,17,19,20 were exclu
 adjustForPaddingInClassification = true;
 clipOutsideRange = true;
 correctTrialsOnly = false;
-filterConstant = 400; % 5
-plotOnlyOnsets = true;
+filterConstant = 400; 
 showHistograms = false;
-binWidth = 0.05; % 0.05 % histogram bin width (units of warped time)
-numPads = 2; % 2 % number of 0 bins to add to each side of histogram
+binWidth = 0.05; % histogram bin width (units of warped time)
+numPads = 2; % number of 0 bins to add to each side of histogram
 expansion = 100; % linear interpolation factor for connecting histogram peaks
 
 %% setup, load data, and format for plotting
 homeDir = pwd; addpath(homeDir);
 model = sprintf('%s_%s',expOrSim,dataType);
-if strcmp(expOrSim,'experiment') && adjustForPaddingInClassification
-    model = [model,'_adjustForPadding']; 
-end
 if strcmp(expOrSim,'simulation'), excludedSessions = []; end
 cd('HMMData');
 switch model
@@ -54,19 +50,11 @@ switch model
         cd('Experiment'); classifiedStates = fun.loadVar('classifiedStates_exp_shuff_circ.mat');
     case 'experiment_shuffled_swap'
         cd('Experiment'); classifiedStates = fun.loadVar('classifiedStates_exp_shuff_swap.mat');
-    case 'experiment_original_adjustForPadding'
-        cd('Experiment'); classifiedStates = fun.loadVar('classifiedStates_exp_adjustForPadding.mat');
-    case 'experiment_shuffled_circular_adjustForPadding'
-        cd('Experiment'); classifiedStates = fun.loadVar('classifiedStates_exp_shuff_circ_adjustForPadding.mat');
-    case 'experiment_shuffled_swap_adjustForPadding'
-        cd('Experiment'); classifiedStates = fun.loadVar('classifiedStates_exp_shuff_swap_adjustForPadding.mat');
 end
 cd(homeDir);
 QCS_onsets = []; QCS_offsets = []; QCS_count = 0;
 CCS_onsets = []; CCS_offsets = []; CCS_count = 0;
 ACS_onsets = []; ACS_offsets = []; ACS_count = 0;
-trialVector = [];
-shift = 350;
 for i = 2:size(classifiedStates,1)
     if ismember(classifiedStates{i,1},excludedSessions), continue; end
     if strcmp(classifiedStates{i,3},'Exclusive Quality-coding')
@@ -78,8 +66,6 @@ for i = 2:size(classifiedStates,1)
         QCS_onsets = [QCS_onsets,classifiedStates{i,6}(ind)];
         QCS_offsets = [QCS_offsets,classifiedStates{i,7}(ind)];
         QCS_count = QCS_count + 1;
-        newBlock = [repmat(reshape(classifiedStates{i,8}(ind),1,[]),2,1)+shift*(classifiedStates{i,1}-1);ones(1,sum(ind))];
-        trialVector = [trialVector,newBlock];
     elseif strcmp(classifiedStates{i,3},'Cue-coding')
         if correctTrialsOnly
             ind = ismember(classifiedStates{i,8},find(classifiedStates{i,9}==1));
@@ -89,8 +75,6 @@ for i = 2:size(classifiedStates,1)
         CCS_onsets = [CCS_onsets,classifiedStates{i,6}(ind)];
         CCS_offsets = [CCS_offsets,classifiedStates{i,7}(ind)];
         CCS_count = CCS_count + 1;
-        newBlock = [repmat(reshape(classifiedStates{i,8}(ind),1,[]),2,1)+shift*(classifiedStates{i,1}-1);2*ones(1,sum(ind))];
-        trialVector = [trialVector,newBlock];
     elseif strcmp(classifiedStates{i,3},'Action-coding')
         if correctTrialsOnly
             ind = ismember(classifiedStates{i,8},find(classifiedStates{i,9}==1));
@@ -100,8 +84,6 @@ for i = 2:size(classifiedStates,1)
         ACS_onsets = [ACS_onsets,classifiedStates{i,6}(ind)];
         ACS_offsets = [ACS_offsets,classifiedStates{i,7}(ind)];
         ACS_count = ACS_count + 1;
-        newBlock = [repmat(reshape(classifiedStates{i,8}(ind),1,[]),2,1)+shift*(classifiedStates{i,1}-1);3*ones(1,sum(ind))];
-        trialVector = [trialVector,newBlock];
     end
 end
 if contains(model,'experiment')
@@ -137,8 +119,8 @@ else
     ACS_offsets_adj = ACS_offsets;
 end
 
-%% plot 1: distributions of onset times
-figureDimensions = [689,239]; % [689,239]
+%% plot distributions of onset times
+figureDimensions = [689,239]; 
 
 f = figure(1); clf;
 f.Position(3:4) = figureDimensions;
@@ -159,6 +141,7 @@ else
     xData_interp = xData; yData_interp = yData;
 end
 [c1filt,t1filt] = fun.gaussfilt(xData_interp,yData_interp,filterConstant,0);
+% onsetTimeDist_QCS = [c1filt' ; t1filt]; save('onsetTimeDist_QCS.mat','onsetTimeDist_QCS');
 p1 = plot(t1filt,c1filt,'linewidth',2.5,'color','r'); hold on;
 if ~showHistograms, h1.Visible = 'off'; end
 c1.Visible = 'off';
@@ -178,6 +161,7 @@ else
     xData_interp = xData; yData_interp = yData;
 end
 [c2filt,t2filt] = fun.gaussfilt(xData_interp,yData_interp,filterConstant,0);
+% onsetTimeDist_CCS = [c2filt' ; t2filt]; save('onsetTimeDist_CCS.mat','onsetTimeDist_CCS');
 p2 = plot(t2filt,c2filt,'linewidth',2.5,'color','c'); hold on; 
 if ~showHistograms, h2.Visible = 'off'; end 
 c2.Visible = 'off';
@@ -197,6 +181,7 @@ else
     xData_interp = xData; yData_interp = yData;
 end
 [c3filt,t3filt] = fun.gaussfilt(xData_interp,yData_interp,filterConstant,0);
+% onsetTimeDist_ACS = [c3filt' ; t3filt]; save('onsetTimeDist_ACS.mat','onsetTimeDist_ACS');
 p3 = plot(t3filt,c3filt,'linewidth',2.5,'color','b'); hold on; 
 if ~showHistograms, h3.Visible = 'off'; end
 c3.Visible = 'off';
@@ -229,91 +214,3 @@ fprintf('\nInferred peaks\n-------\n');
 fprintf('Quality-coding: %.2f\n',t1filt(c1filt==max(c1filt)));
 fprintf('Cue-coding: %.2f\n',t2filt(c2filt==max(c2filt)));
 fprintf('Action-coding: %.2f\n',t3filt(c3filt==max(c3filt)));
-
-if ~plotOnlyOnsets
-    %% plot 2: coding state timecourses (ordered by trial for each session)
-    figure(2); clf;
-    plot([QCS_onsets_adj;QCS_offsets_adj],trialVector(1:2,trialVector(3,:)==1),'r','linewidth',2); hold on;
-    plot([CCS_onsets_adj;CCS_offsets_adj],trialVector(1:2,trialVector(3,:)==2),'c','linewidth',2); hold on;
-    plot([ACS_onsets_adj;ACS_offsets_adj],trialVector(1:2,trialVector(3,:)==3),'b','linewidth',2);
-    sessions = unique([classifiedStates{2:end,1}]);
-    for i = min(sessions):max(sessions), yline(shift*i,'k'); end
-    %for i = excludedSessions, patch([-1.2,1.2,1.2,-1.2],[350*(i-1),350*(i-1),350*i,350*i],'k'); end
-    if contains(model,'simulation')
-        xlabel('Time (relative units: 0 = Trial start, 1 = Trial end)');  
-    else
-        xlabel('Time (relative units: 0 = Taste, 1 = Decision)');
-    end
-    ylabel('Sessions');
-    xlim([-0.1,1.1]);
-    ylim([shift*(min(sessions)-1),shift*max(sessions)]);
-    yticks(setdiff(sessions,excludedSessions)*shift-shift/2); yticklabels(setdiff(sessions,excludedSessions));
-    temp = split(model,'_');
-    titleString = temp{1}; for i = 2:length(temp), titleString = [titleString,'\_',temp{i}]; end
-    title(sprintf('Coding state timecourses: %s',titleString));
-    set(gca,'fontsize',10,'Color','none','TickDir','out','box','off');
-    %set(gcf,'PaperPositionMode','auto');
-    %set(gcf,'Renderer','painters');
-    %print(sprintf('onsetTimes_Exp_%s_%i',model,mode),'-depsc');
-
-    %% plot 3: coding state timecourses (ordered by state type)
-    figure(3); clf;
-    plot([QCS_onsets_adj;QCS_offsets_adj],[1:length(QCS_onsets_adj);1:length(QCS_onsets_adj)],'r','linewidth',2); hold on;
-    plot([CCS_onsets_adj;CCS_offsets_adj],repmat(length(QCS_onsets_adj)+1:length(QCS_onsets_adj)+length(CCS_onsets_adj),2,1),'c','linewidth',2); hold on;
-    plot([ACS_onsets_adj;ACS_offsets_adj],repmat(length(QCS_onsets_adj)+length(CCS_onsets_adj)+1:length(QCS_onsets_adj)+length(CCS_onsets_adj)+length(ACS_onsets_adj),2,1),'b','linewidth',2);
-    set(gca,'fontsize',10,'Color','none','TickDir','out','box','off');
-    %set(gcf,'PaperPositionMode','auto');
-    %set(gcf,'Renderer','painters');
-    if contains(model,'simulation')
-        xlabel('Time (relative units: 0 = Trial start, 1 = Trial end)');   
-    else
-        xlabel('Time (relative units: 0 = Taste, 1 = Decision)');
-    end
-    ylabel('Instances');
-    xlim([-0.1,1.1]);
-    ylim([1,length(QCS_onsets_adj)+length(CCS_onsets_adj)+length(ACS_onsets_adj)]);
-    temp = split(model,'_');
-    titleString = temp{1}; for i = 2:length(temp), titleString = [titleString,'\_',temp{i}]; end
-    title(sprintf('Coding state timecourses: %s',titleString));
-
-    %% plot 4: distributions of occurrence time (onset through offset)
-    figure(4); clf;
-    expansionStep = 0.0001;
-    binSize = 0.05;
-    filterConstant = 5;
-    Qtimes = [];
-    for i = 1:length(QCS_onsets_adj), Qtimes = [Qtimes QCS_onsets_adj(i):expansionStep:QCS_offsets_adj(i)]; end
-    h1 = histogram(Qtimes,'BinEdges',-0.1:binSize:1.1,'normalization','pdf'); hold on;
-    c1 = fun.hist2curve(h1,2,'r'); 
-    [c1filt,t1filt] = fun.gaussfilt(c1.XData,c1.YData,filterConstant,0);
-    p1 = plot(t1filt,c1filt,'linewidth',2.5,'color','r'); hold on;
-    h1.Visible = 'off'; c1.Visible = 'off';
-    Ctimes = [];
-    for i = 1:length(CCS_onsets_adj), Ctimes = [Ctimes CCS_onsets_adj(i):expansionStep:CCS_offsets_adj(i)]; end
-    h2 = histogram(Ctimes,'BinEdges',-0.1:binSize:1.1,'normalization','pdf'); hold on;
-    c2 = fun.hist2curve(h2,2,'r'); 
-    [c2filt,t2filt] = fun.gaussfilt(c2.XData,c2.YData,filterConstant,0);
-    p2 = plot(t2filt,c2filt,'linewidth',2.5,'color','c'); hold on;
-    h2.Visible = 'off'; c2.Visible = 'off';
-    Atimes = [];
-    for i = 1:length(ACS_onsets_adj), Atimes = [Atimes ACS_onsets_adj(i):expansionStep:ACS_offsets_adj(i)]; end
-    h3 = histogram(Atimes,'BinEdges',-0.1:binSize:1.1,'normalization','pdf'); hold on;
-    c3 = fun.hist2curve(h3,2,'r'); 
-    [c3filt,t3filt] = fun.gaussfilt(c3.XData,c3.YData,filterConstant,0);
-    p3 = plot(t3filt,c3filt,'linewidth',2.5,'color','b'); hold on;
-    h3.Visible = 'off'; c3.Visible = 'off';
-    if contains(model,'simulation')  
-        xlabel('Time (relative units: 0 = Trial start, 1 = Trial end)');
-    else
-        xlabel('Time (relative units: 0 = Taste, 1 = Decision)');
-    end
-    xlim([-0.1,1.1]);
-    ylim([0,max([c1filt;c2filt;c3filt])]);
-    ylabel('Probability density');
-    temp = split(model,'_');
-    titleString = temp{1}; for i = 2:length(temp), titleString = [titleString,'\_',temp{i}]; end
-    title(sprintf('Distribution of coding state time: %s',titleString));
-    set(gca,'fontsize',10,'Color','none','TickDir','out','box','off');
-    %set(gcf,'PaperPositionMode','auto');
-    %set(gcf,'Renderer','painters');
-end

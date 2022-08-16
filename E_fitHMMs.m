@@ -6,12 +6,11 @@
 % This script loads the 'spikes' structure and 'win_train' matrix for each
 % experimental or simulated session and proceeds to fit an HMM to each one.
 %
-% To actually fit the HMMs, you will need to download two additional
-% package folders ('+hmm' and '+aux') and save them in your AnalysisDemo
-% directory. The package folders contain code written by Luca Mazzucato.
+% Actually fitting the HMMs requires two package folders ('+hmm' and '+aux').
+% These package folders contain code written by Luca Mazzucato:
+% https://github.com/mazzulab/contamineuro_2019_spiking_net
 %
-% You can save the outputs (it will take a very long time to run) or
-% download the already-fitted HMMs and use them for the next step. 
+% You can simply use the already-fitted HMMs in /HMMData for the next step. 
 %
 % Note that if you fit a new HMM using this script it may not be exactly
 % the same as the already-fitted one because the algorithm uses random
@@ -38,7 +37,6 @@
 %% parameters
 expOrSim = 'experiment'; % 'experiment', 'simulation'
 data = 'original'; % 'original', 'shuffled_circular', 'shuffled_swap'
-autoSaveOutput = false;
 
 %% setup
 homeDir = pwd; addpath(homeDir); % get access to package functions
@@ -52,18 +50,12 @@ else
 end
 if strcmp(expOrSim,'experiment')
     cd('ProcessedData'); cd('Experiment'); loadDir = pwd; cd(homeDir);
-    if autoSaveOutput
-        cd('HMMData'); cd('Experiment'); saveDir = pwd; cd(homeDir);
-    end
     for i = 1:21
         inputFiles1 = [inputFiles1,sprintf('spikes_exp%i%s.mat',i,append)];
         inputFiles2 = [inputFiles2,sprintf('win_train_exp%i.mat',i)];
     end
 elseif strcmp(expOrSim,'simulation')
     cd('ProcessedData'); cd('Simulation'); loadDir = pwd; cd(homeDir);
-    if autoSaveOutput
-        cd('HMMData'); cd('Simulation'); saveDir = pwd; cd(homeDir);
-    end
     for i = 245:254
         inputFiles1 = [inputFiles1,sprintf('spikes_sim%i%s.mat',i,append)];
         inputFiles2 = [inputFiles2,sprintf('win_train_sim%i.mat',i)];
@@ -83,14 +75,12 @@ for i = 1:length(inputFiles1)
     DATAIN = struct('spikes',spikes,'win',win_train,'METHOD',MODELSEL); 
     % pass all to main HMM function
     res = hmm.funHMM(DATAIN);
+    
     % save file
-    if autoSaveOutput
-        cd(saveDir);
-        if strcmp(expOrSim,'experiment')
-            save(sprintf('HMM_exp%i%s.mat',i,append));
-        elseif strcmp(expOrSim,'simulation')
-            save(sprintf('HMM_sim%i%s.mat',i+244,append));
-        end
-        cd(homeDir);
-    end
+    %if strcmp(expOrSim,'experiment')
+        %save(sprintf('HMM_exp%i%s.mat',i,append));
+    %elseif strcmp(expOrSim,'simulation')
+        %save(sprintf('HMM_sim%i%s.mat',i+244,append));
+    %end
+    
 end

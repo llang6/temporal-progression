@@ -17,10 +17,10 @@
 %% options
 %close all; clearvars; clc; % start fresh
 rng(9995); % make simulation results repeatable
-autoSaveOutput = false;
 isOverlapTastes = true;
 isModifyWeights = true; % this also controls modified tau_syns for cue/action clusters
 isActionGate = true;
+isSilencing = false;
 isPlot = true;
 saveInputs = false; % saves total current input over time for clusters (will slow things down)
 numTrials = 4;
@@ -134,22 +134,6 @@ bound2 = 3.0; % time after stimulus when we stop checking for action cluster act
 timerStart_total = tic;
 rngAtStart = rng;
 homeDir = pwd; addpath(homeDir);
-if autoSaveOutput
-    cd('RawData'); cd('Simulation'); saveDir = pwd;
-    myDir = dir; myNames = {myDir.name};
-    myNames = myNames(~[myDir.isdir]);
-    if sum(contains(myNames,'simulationData')) == 0
-        saveName = 'simulationData1';
-    else
-        myNames = myNames(contains(myNames,'simulationData'));
-        myNums = NaN(numel(myNames),1);
-        for i = 1:numel(myNames)
-            myNums(i) = str2double(myNames{i}(15:end-4));
-        end
-        saveName = sprintf('simulationData%i.mat',max(myNums)+1);
-    end
-    cd(homeDir);
-end
 
 %% divide network into Q clusters (includes the background E neurons)
 if mod(net.Ne*net.f,net.Q)
@@ -360,7 +344,7 @@ end
 if isActionGate, gate.Switch = 'on'; else, gate.Switch = 'off'; end
 gate.StartTimes = gate.StartMean + gate.Noise*(2*rand(numTrials,1)-1);
 
-if isPlot
+if isPlot && isActionGate
     figure(4); clf;
     curve = getActionGate(gate.StartMean,gate.Duration,gate.Floor,gate.Ceiling,warmup,totalT,dt);
     plot((0:dt:totalT)/1000,curve(warmup/dt+1:end),'linewidth',2.5,'color','k'); hold on;
@@ -375,10 +359,14 @@ if isPlot
 end
 
 %% simulated optogenetic silencing (temporally-controlled increased input to I neurons)
-silence.curve = getSilencing(silence,warmup,totalT,dt);
+if isSilencing
+    silence.curve = getSilencing(silence,warmup,totalT,dt);
+else
+    silence.curve = '';
+end
 
-if isPlot
-    figure(10); clf;
+if isPlot && isSilencing
+    figure(11); clf;
     plot((0:dt:totalT)/1000,100*(silence.curve(warmup/dt+1:end)-1),'linewidth',2.5,'color','k');
     xlabel('Time [s]'); ylabel('% Increase Input to I'); title({'Optogenetic Silencing';''});
     set(gca,'fontsize',10','TickDir','out','color','none','box','off');
@@ -478,13 +466,6 @@ end
 
 fprintf('\nStrict performance by action cluster activation from %.1f to %.1f s (correct/performed/total): %i/%i/%i\n\n',...
         binSize*(bin1-1),binSize*bin2,sum(choices==corrChoices),sum(~isnan(choices)),numTrials);
-
-if autoSaveOutput 
-    cd(saveDir); 
-    save(saveName, '-regexp', '^(?!(fig|ax)$).');
-    fprintf('\nResults saved as ''%s'' in ''%s''\n',saveName,saveDir);
-    cd(homeDir); 
-end
 
 toc(timerStart_total);
 

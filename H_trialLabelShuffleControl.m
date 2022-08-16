@@ -24,10 +24,10 @@
 % classifyState (which requires chi2test and Marascuilo) (all in +fun)
 
 %% parameters
-rng(99995);
+rng(99995); % for repeatability
 numIters = 10;
 excludedSessions = [5,7,17,19,20];
-adjustForPadding = false; % changes how states are classified by ignoring padding period if true
+adjustForPadding = true; % changes how states are classified by ignoring padding period if true
 
 %% pre-load some data 
 homeDir = pwd; addpath(homeDir);
@@ -92,9 +92,9 @@ for session = 1:21
 end
 
 %% plot results
-x_quality_original = sum(cellfun(@(x)strcmp(x,'Exclusive Quality-coding'),classifiedStates(:,3)));
+x_quality_original = sum(cellfun(@(x)strcmp(x,'Exclusive Quality-coding'),classifiedStates(2:end,3))&cellfun(@(x)~ismember(x,excludedSessions),classifiedStates(2:end,1)));
 x_quality_shuffled = sum(nStates_tasteQuality,'omitnan');
-x_decision_original = sum(cellfun(@(x)ismember(x,{'Exclusive Decision-coding','Cue-coding','Action-coding'}),classifiedStates(:,3)));
+x_decision_original = sum(cellfun(@(x)ismember(x,{'Exclusive Decision-coding','Cue-coding','Action-coding'}),classifiedStates(2:end,3))&cellfun(@(x)~ismember(x,excludedSessions),classifiedStates(2:end,1)));
 x_decision_shuffled = sum(nStates_decision,'omitnan')+sum(nStates_cue,'omitnan')+sum(nStates_action,'omitnan');
 bins = min([x_quality_shuffled,x_decision_shuffled])-0.5:1:max([x_quality_shuffled,x_decision_shuffled])+0.5;
 maxTick = max([x_quality_original,x_quality_shuffled,x_decision_original,x_decision_shuffled])+2;

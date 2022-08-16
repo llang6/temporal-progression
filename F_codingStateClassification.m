@@ -50,59 +50,38 @@
 % getStateTimes (in +fun)
 % classifyState (which requires chi2test and Marascuilo) (all in +fun)
 
-%% parameters
-autoSaveOutput = false;
-
 %% setup
 homeDir = pwd; addpath(homeDir);
 
 %% experiment: original
 classifiedStates_exp = main('experiment','',1:21,true);
-if autoSaveOutput
-    cd('HMMData'); cd('Experiment');
-    save('classifiedStates_exp.mat','classifiedStates_exp');
-    cd(homeDir);
-end
+
+%save('classifiedStates_exp.mat','classifiedStates_exp');
 
 %% experiment: shuffled (circular)
 classifiedStates_exp_shuff_circ = main('experiment','_shuff_circ',1:21,true);
-if autoSaveOutput
-    cd('HMMData'); cd('Experiment');
-    save('classifiedStates_exp_shuff_circ.mat','classifiedStates_exp_shuff_circ');
-    cd(homeDir);
-end
+
+%save('classifiedStates_exp_shuff_circ.mat','classifiedStates_exp_shuff_circ');
 
 %% experiment: shuffled (swap)
 classifiedStates_exp_shuff_swap = main('experiment','_shuff_swap',1:21,true);
-if autoSaveOutput
-    cd('HMMData'); cd('Experiment');
-    save('classifiedStates_exp_shuff_swap.mat','classifiedStates_exp_shuff_swap');
-    cd(homeDir);
-end
+
+%save('classifiedStates_exp_shuff_swap.mat','classifiedStates_exp_shuff_swap');
 
 %% simulation: original
 classifiedStates_sim = main('simulation','',245:254,false);
-if autoSaveOutput
-    cd('HMMData'); cd('Simulation');
-    save('classifiedStates_sim.mat','classifiedStates_sim');
-    cd(homeDir);
-end
+
+%save('classifiedStates_sim.mat','classifiedStates_sim');
 
 %% simulation: shuffled (circular)
 classifiedStates_sim_shuff_circ = main('simulation','_shuff_circ',245:254,false);
-if autoSaveOutput
-    cd('HMMData'); cd('Simulation');
-    save('classifiedStates_sim_shuff_circ.mat','classifiedStates_sim_shuff_circ');
-    cd(homeDir);
-end
+
+%save('classifiedStates_sim_shuff_circ.mat','classifiedStates_sim_shuff_circ');
 
 %% simulation: shuffled (swap)
 classifiedStates_sim_shuff_swap = main('simulation','_shuff_swap',245:254,false);
-if autoSaveOutput
-    cd('HMMData'); cd('Simulation');
-    save('classifiedStates_sim_shuff_swap.mat','classifiedStates_sim_shuff_swap');
-    cd(homeDir);
-end
+
+%save('classifiedStates_sim_shuff_swap.mat','classifiedStates_sim_shuff_swap');
 
 %% main function definition
 function CLASSIFIED_STATES = main(EXP_OR_SIM,MODEL,SESSIONS,ADJUST_FOR_PADDING)
@@ -153,7 +132,7 @@ for i = 1:length(files)
             offsetTimes,offsetTimes_warped,trialIndicator] = fun.getStateTimes(EXP_OR_SIM,hmmData,state,trials);  
         CLASSIFIED_STATES{counter,1} = SESSIONS(i);
         CLASSIFIED_STATES{counter,2} = state;
-        CLASSIFIED_STATES{counter,3} = fun.classifyState(state,stateCell,'stricterSubclassification',true);
+        CLASSIFIED_STATES{counter,3} = fun.classifyState(state,stateCell,'stricterSubclassification',false);
         CLASSIFIED_STATES{counter,4} = onsetTimes;
         CLASSIFIED_STATES{counter,5} = offsetTimes;
         CLASSIFIED_STATES{counter,6} = onsetTimes_warped;

@@ -1,4 +1,4 @@
-%% optoSilencing Experiment
+%% optoSilencingExperiment
 %
 % This script carries out the simulated optogenetic perturbation
 % experiments.
@@ -84,9 +84,19 @@
 % -LL
 %
 
+%% dependencies
+% requires access to data:
+% /RawData/Simulation/simulationDataX.mat for X in 245:254
+% /HMMData/Simulation/onsetTimeDist_XCS.mat for X in {Q,A,C}
+% /ProcessedData/Simulation/deltaFRs_strX_durY_cZ.mat for various X, Y, Z
+% /ProcessedData/Simulation/perf_silStrX_silDurY_stimFallZ_stimGain60.mat for various X, Y, Z
+% requires access to functions:
+% gaussfilt (in +fun)
+% distinguishable_colors (in +fun)
+
 %% PART 1
 
-%% options and global parameters
+% options and global parameters -------------------------
 sessions = 1:10;
 numTrials = 100;
 warmup = 0; % simulate for this long before considering the trial to have begun, [ms]
@@ -104,19 +114,13 @@ stim_tauFall = 0.705; % [s]
 
 autoSaveOutput = false;
 
-%% main simulations
+% main simulations -------------------------
 timev = 0:dt:warmup+totalT;
 index2 = 1:length(silence_center);
 stim_Curve(timev>=warmup) = (1/((stim_tauFall*1000)-(stim_tauRise*1000)))*...
     (exp(-(0:dt:totalT)/(stim_tauFall*1000))-...
     exp(-(0:dt:totalT)/(stim_tauRise*1000)));
 stim_Curve = stim_Curve/max(abs(stim_Curve))*stim_Gain;
-area = stim_Gain*(stim_tauFall-stim_tauRise)/...
-    ((stim_tauRise/stim_tauFall)^(1/(stim_tauFall/stim_tauRise-1))-...
-    (stim_tauRise/stim_tauFall)^(1/(1-stim_tauRise/stim_tauFall)));
-areaOriginal = 0.6*(0.16-0.15)/((0.15/0.16)^(1/(0.16/0.15-1))-(0.15/0.16)^(1/(1-0.15/0.16)));
-%stim_Curve = stim_Curve/area*areaOriginal;
-stim_Gain = max(stim_Curve);
 perf = cell(10,length(silence_center));
 
 for session_count = sessions
@@ -202,14 +206,12 @@ for session_count = sessions
 
 end
 
-if autoSaveOutput
-    save(sprintf('perf_silStr%i_silDur%i_stimFall%i_stimGain%i.mat',...
-        round(silence_strength),round(100*silence_duration),round(stim_tauFall*1000),round(stim_Gain*100)),'perf');
-end
+%save(sprintf('perf_silStr%i_silDur%i_stimFall%i_stimGain%i.mat',...
+%    round(silence_strength),round(100*silence_duration),round(stim_tauFall*1000),round(stim_Gain*100)),'perf');
     
 %% PART 2
 
-%% options and global parameters
+% options and global parameters -------------------------
 sessions = 1:10;
 numTrials = 100;
 
@@ -221,16 +223,14 @@ warmup = 0; % simulate for this long before considering the trial to have begun,
 totalT = 3000; % trial time, [ms]
 dt = 0.05;
 
-autoSave = true;
-
-%% main simulations
+% main simulations -------------------------
 timev = 0:dt:warmup+totalT;
 windowPre = 1000*[silence_center-3*silence_duration/2,silence_center-silence_duration/2]+warmup;
 windowDur = 1000*[silence_center-silence_duration/2,silence_center+silence_duration/2]+warmup;
 allSpikes = cell(10,1);
 frs = struct();
 
-parfor session_count = sessions
+for session_count = sessions
 
     % session-specific parameters
     data = load(sprintf('%s/RawData/Simulation/simulationData%i.mat',pwd,244+session_count));
@@ -301,13 +301,11 @@ parfor session_count = sessions
 
 end
 
-if autoSave
-    save(sprintf('deltaFRs_str%i_dur%i_c%i',silence_strength,round(1000*silence_duration),round(1000*silence_center)),'frs');
-end
+%save(sprintf('deltaFRs_str%i_dur%i_c%i',silence_strength,round(1000*silence_duration),round(1000*silence_center)),'frs');
 
 %% PART 3
 
-%% options and global parameters
+% options and global parameters -------------------------
 session = 1;
 trial = 1;
 
@@ -323,7 +321,7 @@ warmup = 0; % simulate for this long before considering the trial to have begun,
 totalT = 3000; % trial time, [ms]
 dt = 0.05;
 
-%% simulation
+% simulation -------------------------
 rng(99995);
 timev = 0:dt:warmup+totalT;
 % session-specific parameters
@@ -435,14 +433,14 @@ set(gca,'TickDir','out','Color','none','box','off','fontsize',16);
 
 %% PART 4
 
-%% options and global parameters
+% options and global parameters -------------------------
 factorInOmissions = true;
 isSmooth = true;
 slopeType = 'endpoints0point5'; % 'midpoints','endpoints','endpoints0point5','regression'
 upsample_factor = 100;
 smoothing = 250;
 
-%% main
+% main -------------------------
 % load baseline data
 baseline_perf = cell(10,1);
 i = 0;
@@ -465,7 +463,7 @@ silence_strengths = [25,50,75,100,125]; % [%]
 silence_center = 0:0.05:3;
 curves = zeros(length(silence_strengths),length(silence_center));
 for i = 1:length(silence_strengths)
-    data = load(sprintf('perf_silStr%i_silDur250_stimFall160_stimGain60.mat',silence_strengths(i)));
+    data = load(sprintf('%s/ProcessedData/Simulation/perf_silStr%i_silDur250_stimFall160_stimGain60.mat',pwd,silence_strengths(i)));
     if factorInOmissions
         opto_acc = cellfun(@(x)x(1)+0.5*(100-x(2)),data.perf);
     else
@@ -515,7 +513,7 @@ silence_center = 0:0.05:3;
 silence_center = silence_center(1:ceil(length(silence_center)/2));
 curves = zeros(length(tau_Fs),length(silence_center));
 for i = 1:length(tau_Fs)
-    data = load(sprintf('perf_silStr100_silDur250_stimFall%i_stimGain60.mat',tau_Fs(i)));
+    data = load(sprintf('%s/ProcessedData/Simulation/perf_silStr100_silDur250_stimFall%i_stimGain60.mat',pwd,tau_Fs(i)));
     if factorInOmissions
         opto_acc = cellfun(@(x)x(1)+0.5*(100-x(2)),data.perf);
     else
@@ -598,7 +596,7 @@ figure(9); clf; hold all;
 silence_strengths = [25,50,75,100,125];
 clusterAves = NaN(2,5);
 for s = 1:length(silence_strengths)
-    data = load(sprintf('deltaFRs_str%i_dur250_c1500.mat',silence_strengths(s)));
+    data = load(sprintf('%s/ProcessedData/Simulation/deltaFRs_str%i_dur250_c1500.mat',pwd,silence_strengths(s)));
     frs = data.frs;
     durFRsI = []; preFRsI = [];
     durFRsE = []; preFRsE = [];
