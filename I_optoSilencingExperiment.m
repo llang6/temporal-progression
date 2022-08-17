@@ -94,6 +94,9 @@
 % gaussfilt (in +fun)
 % distinguishable_colors (in +fun)
 
+%% setup
+addpath(pwd); % gain access to package functions
+
 %% PART 1
 
 % options and global parameters -------------------------

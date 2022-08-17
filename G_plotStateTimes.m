@@ -20,12 +20,12 @@
 % gaussfilt (in +fun)
 
 %% parameters
-expOrSim = 'simulation'; % 'experiment', 'simulation'
+expOrSim = 'experiment'; % 'experiment', 'simulation'
 dataType = 'original'; % 'original', 'shuffled_circular', 'shuffled_swap'
-excludedSessions = [5,7,17,19,20]; % experiment sessions 5,7,17,19,20 were excluded from analysis
 adjustForPaddingInClassification = true;
 clipOutsideRange = true;
-correctTrialsOnly = false;
+excludeIncorrectTrials = false;
+excludeOmittedTrials = false;
 filterConstant = 400; 
 showHistograms = false;
 binWidth = 0.05; % histogram bin width (units of warped time)
@@ -33,33 +33,39 @@ numPads = 2; % number of 0 bins to add to each side of histogram
 expansion = 100; % linear interpolation factor for connecting histogram peaks
 
 %% setup, load data, and format for plotting
-homeDir = pwd; addpath(homeDir);
+addpath(pwd); % gain access to package functions
 model = sprintf('%s_%s',expOrSim,dataType);
-if strcmp(expOrSim,'simulation'), excludedSessions = []; end
-cd('HMMData');
+if strcmp(expOrSim,'simulation')
+    excludedSessions = []; 
+else
+    excludedSessions = [5,7,17,19,20];
+end
 switch model
     case 'simulation_original'
-        cd('Simulation'); classifiedStates = fun.loadVar('classifiedStates_sim.mat');
+        classifiedStates = fun.loadVar(sprintf('%s/HMMData/Simulation/classifiedStates_sim.mat',pwd));
     case 'simulation_shuffled_circular'
-        cd('Simulation'); classifiedStates = fun.loadVar('classifiedStates_sim_shuff_circ.mat');
+        classifiedStates = fun.loadVar(sprintf('%s/HMMData/Simulation/classifiedStates_sim_shuff_circ.mat',pwd));
     case 'simulation_shuffled_swap'
-        cd('Simulation'); classifiedStates = fun.loadVar('classifiedStates_sim_shuff_swap.mat');
+        classifiedStates = fun.loadVar(sprintf('%s/HMMData/Simulation/classifiedStates_sim_shuff_swap.mat',pwd));
     case 'experiment_original'
-        cd('Experiment'); classifiedStates = fun.loadVar('classifiedStates_exp.mat');
+        classifiedStates = fun.loadVar(sprintf('%s/HMMData/Experiment/classifiedStates_exp.mat',pwd));
     case 'experiment_shuffled_circular'
-        cd('Experiment'); classifiedStates = fun.loadVar('classifiedStates_exp_shuff_circ.mat');
+        classifiedStates = fun.loadVar(sprintf('%s/HMMData/Experiment/classifiedStates_exp_shuff_circ.mat',pwd));
     case 'experiment_shuffled_swap'
-        cd('Experiment'); classifiedStates = fun.loadVar('classifiedStates_exp_shuff_swap.mat');
+        classifiedStates = fun.loadVar(sprintf('%s/HMMData/Experiment/classifiedStates_exp_shuff_swap.mat',pwd));
 end
-cd(homeDir);
 QCS_onsets = []; QCS_offsets = []; QCS_count = 0;
 CCS_onsets = []; CCS_offsets = []; CCS_count = 0;
 ACS_onsets = []; ACS_offsets = []; ACS_count = 0;
 for i = 2:size(classifiedStates,1)
     if ismember(classifiedStates{i,1},excludedSessions), continue; end
     if strcmp(classifiedStates{i,3},'Exclusive Quality-coding')
-        if correctTrialsOnly
+        if excludeIncorrectTrials && excludeOmittedTrials
             ind = ismember(classifiedStates{i,8},find(classifiedStates{i,9}==1));
+        elseif excludeIncorrectTrials && ~excludeOmittedTrials
+            ind = ismember(classifiedStates{i,8},find(classifiedStates{i,9}~=0));
+        elseif ~excludeIncorrectTrials && excludeOmittedTrials
+            ind = ismember(classifiedStates{i,8},find(~isnan(classifiedStates{i,9})));
         else
             ind = true(1,length(classifiedStates{i,8}));
         end
@@ -67,8 +73,12 @@ for i = 2:size(classifiedStates,1)
         QCS_offsets = [QCS_offsets,classifiedStates{i,7}(ind)];
         QCS_count = QCS_count + 1;
     elseif strcmp(classifiedStates{i,3},'Cue-coding')
-        if correctTrialsOnly
+        if excludeIncorrectTrials && excludeOmittedTrials
             ind = ismember(classifiedStates{i,8},find(classifiedStates{i,9}==1));
+        elseif excludeIncorrectTrials && ~excludeOmittedTrials
+            ind = ismember(classifiedStates{i,8},find(classifiedStates{i,9}~=0));
+        elseif ~excludeIncorrectTrials && excludeOmittedTrials
+            ind = ismember(classifiedStates{i,8},find(~isnan(classifiedStates{i,9})));
         else
             ind = true(1,length(classifiedStates{i,8}));
         end
@@ -76,8 +86,12 @@ for i = 2:size(classifiedStates,1)
         CCS_offsets = [CCS_offsets,classifiedStates{i,7}(ind)];
         CCS_count = CCS_count + 1;
     elseif strcmp(classifiedStates{i,3},'Action-coding')
-        if correctTrialsOnly
+        if excludeIncorrectTrials && excludeOmittedTrials
             ind = ismember(classifiedStates{i,8},find(classifiedStates{i,9}==1));
+        elseif excludeIncorrectTrials && ~excludeOmittedTrials
+            ind = ismember(classifiedStates{i,8},find(classifiedStates{i,9}~=0));
+        elseif ~excludeIncorrectTrials && excludeOmittedTrials
+            ind = ismember(classifiedStates{i,8},find(~isnan(classifiedStates{i,9})));
         else
             ind = true(1,length(classifiedStates{i,8}));
         end
@@ -122,11 +136,11 @@ end
 %% plot distributions of onset times
 figureDimensions = [689,239]; 
 
-f = figure(1); clf;
+f = figure(1); clf; hold all;
 f.Position(3:4) = figureDimensions;
 bins = -0.1:binWidth:1.1;
-% first distribution
-h1 = histogram(QCS_onsets_adj,bins,'normalization','pdf','EdgeColor','none','FaceColor','r'); hold on;
+% Quality-coding state onset time distribution
+h1 = histogram(QCS_onsets_adj,bins,'normalization','pdf','EdgeColor','none','FaceColor','r');
 c1 = fun.hist2curve(h1,'numPads',numPads,'linewidth',2,'color','r','linestyle',':');
 xData = c1.XData; yData = c1.YData;
 if expansion > 0
@@ -142,12 +156,12 @@ else
 end
 [c1filt,t1filt] = fun.gaussfilt(xData_interp,yData_interp,filterConstant,0);
 % onsetTimeDist_QCS = [c1filt' ; t1filt]; save('onsetTimeDist_QCS.mat','onsetTimeDist_QCS');
-p1 = plot(t1filt,c1filt,'linewidth',2.5,'color','r'); hold on;
+p1 = plot(t1filt,c1filt,'linewidth',2.5,'color','r');
 if ~showHistograms, h1.Visible = 'off'; end
 c1.Visible = 'off';
-% second distribution
-h2 = histogram(CCS_onsets_adj,bins,'normalization','pdf','EdgeColor','none','FaceColor','c'); hold on;
-c2 = fun.hist2curve(h2,'numPads',numPads,'linewidth',2,'color','c','linestyle',':'); hold on;
+% Cue-coding state onset time distribution
+h2 = histogram(CCS_onsets_adj,bins,'normalization','pdf','EdgeColor','none','FaceColor','c');
+c2 = fun.hist2curve(h2,'numPads',numPads,'linewidth',2,'color','c','linestyle',':');
 xData = c2.XData; yData = c2.YData;
 if expansion > 0
     xData_interp = xData(1); yData_interp = yData(1);
@@ -162,12 +176,12 @@ else
 end
 [c2filt,t2filt] = fun.gaussfilt(xData_interp,yData_interp,filterConstant,0);
 % onsetTimeDist_CCS = [c2filt' ; t2filt]; save('onsetTimeDist_CCS.mat','onsetTimeDist_CCS');
-p2 = plot(t2filt,c2filt,'linewidth',2.5,'color','c'); hold on; 
+p2 = plot(t2filt,c2filt,'linewidth',2.5,'color','c'); 
 if ~showHistograms, h2.Visible = 'off'; end 
 c2.Visible = 'off';
-% third distribution
-h3 = histogram(ACS_onsets_adj,bins,'normalization','pdf','EdgeColor','none','FaceColor','b'); hold on;
-c3 = fun.hist2curve(h3,'numPads',numPads,'linewidth',2,'color','b','linestyle',':'); hold on;
+% Action-coding state onset time distribution
+h3 = histogram(ACS_onsets_adj,bins,'normalization','pdf','EdgeColor','none','FaceColor','b');
+c3 = fun.hist2curve(h3,'numPads',numPads,'linewidth',2,'color','b','linestyle',':');
 xData = c3.XData; yData = c3.YData;
 if expansion > 0
     xData_interp = xData(1); yData_interp = yData(1);
@@ -182,7 +196,7 @@ else
 end
 [c3filt,t3filt] = fun.gaussfilt(xData_interp,yData_interp,filterConstant,0);
 % onsetTimeDist_ACS = [c3filt' ; t3filt]; save('onsetTimeDist_ACS.mat','onsetTimeDist_ACS');
-p3 = plot(t3filt,c3filt,'linewidth',2.5,'color','b'); hold on; 
+p3 = plot(t3filt,c3filt,'linewidth',2.5,'color','b');
 if ~showHistograms, h3.Visible = 'off'; end
 c3.Visible = 'off';
 legend([p1,p2,p3],{sprintf('Quality-coding states (N=%i from %i states)',length(QCS_onsets_adj),QCS_count),...

@@ -23,6 +23,9 @@
 % getStateCell (in +fun)
 % scoreTrials (in +fun)
 
+%% setup
+addpath(pwd); % gain access to package functions
+
 %% count numbers of HMM states (for Supplementary Tables 1 and 2)
 
 % ------------------------------------------------------------
