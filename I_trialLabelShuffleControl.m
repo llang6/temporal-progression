@@ -19,27 +19,24 @@
 % /RawData/Experiment/SessionInfo.mat
 % /HMMData/Experiment/classifiedStates_exp.mat
 % /HMMData/Experiment/HMM_expX.mat for X in 1:21
+%
 % requires access to functions:
+% loadVar (in +fun)
 % getStateCell (in +fun)
 % classifyState (which requires chi2test and Marascuilo) (all in +fun)
 
 %% parameters
-rng(99995); % for repeatability
 numIters = 10;
 excludedSessions = [5,7,17,19,20];
 adjustForPadding = true; % changes how states are classified by ignoring padding period if true
 
 %% pre-load some data 
-homeDir = pwd; addpath(homeDir);
+addpath(pwd);
 fprintf('\nPre-loading data...\n');
 % 'SessionInfo' (contains all behavior data)
-cd('RawData'); cd('Experiment');
-SessionInfo = fun.loadVar('SessionInfo.mat');
-cd(homeDir);
+SessionInfo = fun.loadVar(sprintf('%s/RawData/Experiment/SessionInfo.mat',pwd));
 % 'classifiedStates_exp' (original result for comparison with shuffled)
-cd('HMMData'); cd('Experiment');
-classifiedStates = fun.loadVar('classifiedStates_exp.mat');
-cd(homeDir);
+classifiedStates = fun.loadVar(sprintf('%s/HMMData/Experiment/classifiedStates_exp.mat',pwd));
 fprintf('Data pre-loaded.\n');
 
 %% main analysis
@@ -57,9 +54,7 @@ for session = 1:21
     if ismember(session,excludedSessions), continue; end
     fprintf('\nAnalyzing session %i...\n',session);
     % load data
-    cd('HMMData'); cd('Experiment');
-    hmmData = load(sprintf('HMM_exp%i.mat',session));
-    cd(homeDir);
+    hmmData = load(sprintf('%s/HMMData/Experiment/HMM_exp%i.mat',pwd,session));
     % score trials
     scoredTrials = [SessionInfo(session).TrialEvents.TrialType.wasCorrect]==1;
     % loop through iterations

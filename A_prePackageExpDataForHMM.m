@@ -26,10 +26,8 @@ postDecTime = 0.1; % spike trains clipped after postDecTime [s] after decision e
 minFR = 2; % neurons firing at < minFR [Hz] will be removed
 
 %% setup and load data
-homeDir = pwd; addpath(homeDir);
-cd('RawData'); cd('Experiment');
-load('SessionInfo.mat'); 
-cd(homeDir);
+addpath(pwd);
+SessionInfo = fun.loadVar(sprintf('%s/RawData/Experiment/SessionInfo.mat',pwd));
 
 %% loop over sessions
 for session = sessions
@@ -72,8 +70,8 @@ for session = sessions
     spikes_active = spikes;
     spikes_active(:,quietNeurons) = [];
     
-    %save(sprintf('spikes_exp%i.mat',session),'spikes_active');
-    %save(sprintf('win_train_exp%i.mat',session),'win_train');
+    %save(sprintf('%s/ProcessedData/Experiment/spikes_exp%i.mat',pwd,session),'spikes_active');
+    %save(sprintf('%s/ProcessedData/Experiment/win_train_exp%i.mat',pwd,session),'win_train');
     
     fprintf('Done.\n');
 end

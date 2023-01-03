@@ -7,21 +7,29 @@
 %
 
 %% dependencies
-% requires access to files:
+% requires access to data:
 % /HMMData/Experiment/classifiedStates_exp.mat
 % /HMMData/Experiment/classifiedStates_exp_shuff_circ.mat
 % /HMMData/Experiment/classifiedStates_exp_shuff_swap.mat
+% /HMMData/Experiment/classifiedStates_exp_stricterSubClassification.mat
 % /HMMData/Simulation/classifiedStates_sim.mat
 % /HMMData/Simulation/classifiedStates_sim_shuff_circ.mat
 % /HMMData/Simulation/classifiedStates_sim_shuff_swap.mat
+% /HMMData/Simulation/classifiedStates_sim_longStim.mat
+% /HMMData/Simulation/classifiedStates_sim_strongStim.mat
+%
 % requires access to functions:
 % loadVar (in +fun)
 % hist2curve (in +fun)
-% gaussfilt (in +fun)
+% mySmoothing, which calls gaussfilt (both in +fun)
 
 %% parameters
-expOrSim = 'experiment'; % 'experiment', 'simulation'
+expOrSim = 'simulation'; % 'experiment', 'simulation'
 dataType = 'original'; % 'original', 'shuffled_circular', 'shuffled_swap'
+                                % also
+                                % 'original_stricterSubClassification',
+                                % 'original_longStim',
+                                % 'original_strongStim'
 adjustForPaddingInClassification = true;
 clipOutsideRange = true;
 excludeIncorrectTrials = false;
@@ -43,12 +51,18 @@ end
 switch model
     case 'simulation_original'
         classifiedStates = fun.loadVar(sprintf('%s/HMMData/Simulation/classifiedStates_sim.mat',pwd));
+    case 'simulation_original_longStim'
+        classifiedStates = fun.loadVar(sprintf('%s/HMMData/Simulation/classifiedStates_sim_longStim.mat',pwd));
+    case 'simulation_original_strongStim'
+        classifiedStates = fun.loadVar(sprintf('%s/HMMData/Simulation/classifiedStates_sim_strongStim.mat',pwd));
     case 'simulation_shuffled_circular'
         classifiedStates = fun.loadVar(sprintf('%s/HMMData/Simulation/classifiedStates_sim_shuff_circ.mat',pwd));
     case 'simulation_shuffled_swap'
         classifiedStates = fun.loadVar(sprintf('%s/HMMData/Simulation/classifiedStates_sim_shuff_swap.mat',pwd));
     case 'experiment_original'
         classifiedStates = fun.loadVar(sprintf('%s/HMMData/Experiment/classifiedStates_exp.mat',pwd));
+    case 'experiment_original_stricterSubClassification'
+        classifiedStates = fun.loadVar(sprintf('%s/HMMData/Experiment/classifiedStates_exp_stricterSubClassification.mat',pwd));
     case 'experiment_shuffled_circular'
         classifiedStates = fun.loadVar(sprintf('%s/HMMData/Experiment/classifiedStates_exp_shuff_circ.mat',pwd));
     case 'experiment_shuffled_swap'
@@ -141,80 +155,49 @@ f.Position(3:4) = figureDimensions;
 bins = -0.1:binWidth:1.1;
 % Quality-coding state onset time distribution
 h1 = histogram(QCS_onsets_adj,bins,'normalization','pdf','EdgeColor','none','FaceColor','r');
-c1 = fun.hist2curve(h1,'numPads',numPads,'linewidth',2,'color','r','linestyle',':');
-xData = c1.XData; yData = c1.YData;
-if expansion > 0
-    xData_interp = xData(1); yData_interp = yData(1);
-    for i = 1:length(xData)-1
-        interpX = linspace(xData(i),xData(i+1),expansion);
-        interpY = linspace(yData(i),yData(i+1),expansion);
-        xData_interp = [xData_interp,interpX(2:end)];
-        yData_interp = [yData_interp,interpY(2:end)];
-    end    
-else
-    xData_interp = xData; yData_interp = yData;
-end
-[c1filt,t1filt] = fun.gaussfilt(xData_interp,yData_interp,filterConstant,0);
+[~,t1,c1] = fun.hist2curve(h1,'numPads',numPads,'isPlot',false);
+[t1filt,c1filt] = fun.mySmoothing(t1,c1,'zeros',0,expansion,filterConstant);
 % onsetTimeDist_QCS = [c1filt' ; t1filt]; save('onsetTimeDist_QCS.mat','onsetTimeDist_QCS');
 p1 = plot(t1filt,c1filt,'linewidth',2.5,'color','r');
 if ~showHistograms, h1.Visible = 'off'; end
-c1.Visible = 'off';
 % Cue-coding state onset time distribution
 h2 = histogram(CCS_onsets_adj,bins,'normalization','pdf','EdgeColor','none','FaceColor','c');
-c2 = fun.hist2curve(h2,'numPads',numPads,'linewidth',2,'color','c','linestyle',':');
-xData = c2.XData; yData = c2.YData;
-if expansion > 0
-    xData_interp = xData(1); yData_interp = yData(1);
-    for i = 1:length(xData)-1
-        interpX = linspace(xData(i),xData(i+1),expansion);
-        interpY = linspace(yData(i),yData(i+1),expansion);
-        xData_interp = [xData_interp,interpX(2:end)];
-        yData_interp = [yData_interp,interpY(2:end)];
-    end    
-else
-    xData_interp = xData; yData_interp = yData;
-end
-[c2filt,t2filt] = fun.gaussfilt(xData_interp,yData_interp,filterConstant,0);
+[~,t2,c2] = fun.hist2curve(h2,'numPads',numPads,'isPlot',false);
+[t2filt,c2filt] = fun.mySmoothing(t2,c2,'zeros',0,expansion,filterConstant);
 % onsetTimeDist_CCS = [c2filt' ; t2filt]; save('onsetTimeDist_CCS.mat','onsetTimeDist_CCS');
 p2 = plot(t2filt,c2filt,'linewidth',2.5,'color','c'); 
 if ~showHistograms, h2.Visible = 'off'; end 
-c2.Visible = 'off';
 % Action-coding state onset time distribution
 h3 = histogram(ACS_onsets_adj,bins,'normalization','pdf','EdgeColor','none','FaceColor','b');
-c3 = fun.hist2curve(h3,'numPads',numPads,'linewidth',2,'color','b','linestyle',':');
-xData = c3.XData; yData = c3.YData;
-if expansion > 0
-    xData_interp = xData(1); yData_interp = yData(1);
-    for i = 1:length(xData)-1
-        interpX = linspace(xData(i),xData(i+1),expansion);
-        interpY = linspace(yData(i),yData(i+1),expansion);
-        xData_interp = [xData_interp,interpX(2:end)];
-        yData_interp = [yData_interp,interpY(2:end)];
-    end    
-else
-    xData_interp = xData; yData_interp = yData;
-end
-[c3filt,t3filt] = fun.gaussfilt(xData_interp,yData_interp,filterConstant,0);
+[~,t3,c3] = fun.hist2curve(h3,'numPads',numPads,'isPlot',false);
+[t3filt,c3filt] = fun.mySmoothing(t3,c3,'zeros',0,expansion,filterConstant);
 % onsetTimeDist_ACS = [c3filt' ; t3filt]; save('onsetTimeDist_ACS.mat','onsetTimeDist_ACS');
 p3 = plot(t3filt,c3filt,'linewidth',2.5,'color','b');
 if ~showHistograms, h3.Visible = 'off'; end
-c3.Visible = 'off';
 legend([p1,p2,p3],{sprintf('Quality-coding states (N=%i from %i states)',length(QCS_onsets_adj),QCS_count),...
                    sprintf('Cue-coding states (N=%i from %i states)',length(CCS_onsets_adj),CCS_count),...
                    sprintf('Action-coding states (N=%i from %i states)',length(ACS_onsets_adj),ACS_count)},...
-                   'location','eastoutside');
+                   'location','northeastoutside');
+xlim([-0.1,1.1]);
+ylim([0,max([c1filt',c2filt',c3filt'])+0.1]);
+temp = split(model,'_');
+titleString = temp{1}; for i = 2:length(temp), titleString = [titleString,'\_',temp{i}]; end
+title(sprintf('Distribution of onset times: %s',titleString));
+set(gca,'Color','none','TickDir','out','box','off');
 if contains(model,'simulation')
     xlabel('Time (relative units: 0 = Trial start, 1 = Trial end)'); 
 else
     xlabel('Time (relative units: 0 = Taste, 1 = Decision)');
 end
 ylabel('Probability density');
-xlim([-0.1,1.1]);
-ylim([0,max([c1filt',c2filt',c3filt'])+0.1]);
-temp = split(model,'_');
-titleString = temp{1}; for i = 2:length(temp), titleString = [titleString,'\_',temp{i}]; end
-title(sprintf('Distribution of onset times: %s',titleString));
-set(gca,'fontsize',10,'Color','none','TickDir','out','box','off');
+
+% set(gcf,'Renderer','painters'); 
+% set(gcf,'PaperUnits','inches'); 
+% set(gcf,'PaperSize',[2.2, 1.94]); 
+% set(gcf,'PaperPosition',[0 0 2.2 1.94]); 
+% set(gcf,'Units','inches'); 
+% print('onsetDistn_strongerStim','-dpdf','-r200'); 
+
 % set(gcf,'PaperPositionMode','auto');
 % set(gcf,'Renderer','painters');
 % print(sprintf('onsetTimes_%s',model),'-depsc');

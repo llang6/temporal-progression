@@ -11,8 +11,17 @@
 %
 % Simulating 4 trials takes about 0.5-1 minute.
 %
+% Generated files were saved in '/RawData/Simulation'
+%
 % -LL
 %
+
+%% dependencies
+% None
+% This script relies on locally-defined functions only so that it can be
+% self-contained. However, many of the local functions also exist in +fun,
+% and calls to them could be prefixed by 'fun.' without changing the
+% behavior
 
 %% options
 %close all; clearvars; clc; % start fresh
@@ -334,7 +343,8 @@ stim.rInd = sort([stim.malInd,stim.octInd]);
 
 if isPlot
     figure(3); clf;
-    plot((0:dt:totalT)/1000,stim.Curve(warmup/dt+1:end)*100,'linewidth',2.5,'color','k');
+    plot((timev-warmup)/1000,stim.Curve*100,'linewidth',2.5,'color','k');
+    %plot((0:dt:totalT)/1000,stim.Curve(warmup/dt+1:end)*100,'linewidth',2.5,'color','k');
     xlabel('Time [s]'); ylabel('Stimulus Gain [%]'); title({'Stimulus Profile';''});
     set(gca,'fontsize',10,'TickDir','out','Color','none','box','off');
     drawnow;
@@ -347,11 +357,14 @@ gate.StartTimes = gate.StartMean + gate.Noise*(2*rand(numTrials,1)-1);
 if isPlot && isActionGate
     figure(4); clf;
     curve = getActionGate(gate.StartMean,gate.Duration,gate.Floor,gate.Ceiling,warmup,totalT,dt);
-    plot((0:dt:totalT)/1000,curve(warmup/dt+1:end),'linewidth',2.5,'color','k'); hold on;
+    plot((timev-warmup)/1000,curve,'linewidth',2.5,'color','k'); hold on;
+    %plot((0:dt:totalT)/1000,curve(warmup/dt+1:end),'linewidth',2.5,'color','k'); hold on;
     curve = getActionGate(gate.StartMean-gate.Noise,gate.Duration,gate.Floor,gate.Ceiling,warmup,totalT,dt);
-    plot((0:dt:totalT)/1000,curve(warmup/dt+1:end),'linewidth',1.5,'color','k','linestyle',':'); hold on;
+    plot((timev-warmup)/1000,curve,'linewidth',1.5,'color','k','linestyle',':'); hold on;
+    %plot((0:dt:totalT)/1000,curve(warmup/dt+1:end),'linewidth',1.5,'color','k','linestyle',':'); hold on;
     curve = getActionGate(gate.StartMean+gate.Noise,gate.Duration,gate.Floor,gate.Ceiling,warmup,totalT,dt);
-    plot((0:dt:totalT)/1000,curve(warmup/dt+1:end),'linewidth',1.5,'color','k','linestyle',':'); hold on;
+    plot((timev-warmup)/1000,curve,'linewidth',1.5,'color','k','linestyle',':'); hold on;
+    %plot((0:dt:totalT)/1000,curve(warmup/dt+1:end),'linewidth',1.5,'color','k','linestyle',':'); hold on;
     xlabel('Time [s]'); ylabel('Action Gate'); title({'Action Gate Profile';''});
     ylim([0,1]);
     set(gca,'fontsize',10,'TickDir','out','Color','none','box','off');
@@ -360,14 +373,15 @@ end
 
 %% simulated optogenetic silencing (temporally-controlled increased input to I neurons)
 if isSilencing
-    silence.curve = getSilencing(silence,warmup,totalT,dt);
+    silence.curve = getSilencing(silence.start,silence.duration,warmup,totalT,dt);
 else
     silence.curve = '';
 end
 
 if isPlot && isSilencing
     figure(11); clf;
-    plot((0:dt:totalT)/1000,100*(silence.curve(warmup/dt+1:end)-1),'linewidth',2.5,'color','k');
+    plot((timev-warmup)/1000,100*(silence.curve-1),'linewidth',2.5,'color','k');
+    %plot((0:dt:totalT)/1000,100*(silence.curve(warmup/dt+1:end)-1),'linewidth',2.5,'color','k');
     xlabel('Time [s]'); ylabel('% Increase Input to I'); title({'Optogenetic Silencing';''});
     set(gca,'fontsize',10','TickDir','out','color','none','box','off');
     drawnow;
@@ -378,7 +392,8 @@ timerStart_trial = tic; %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 fprintf('\nSimulating baseline trial...');
 
 gate.Curve = getActionGate(gate.StartMean,gate.Duration,gate.Floor,gate.Ceiling,warmup,totalT,dt);
-[spkdata,~] = simulation(net,neu,stim,inds,'',gate,S,isModifyWeights,warmup,BinW,timev,'',false);
+
+[spkdata,~] = simulation(net,neu,stim,inds,'',gate.Switch,gate.Curve,S,isModifyWeights,warmup,BinW,timev,'',false,'');
 
 fprintf('Done. ');
 toc(timerStart_trial); %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -391,6 +406,7 @@ if isPlot
     figure(5); 
     clf; hold all;
     rasterPlot(firings,inds,indexReMap_inv,clustersWithRoles,totalT,net);
+    xlim(([timev(1),timev(end)]-warmup)/1000);
     title('Baseline trial (no stimulus)');
     drawnow;
 end
@@ -408,9 +424,9 @@ for iter = 1:numTrials
 
     timerStart_trial = tic; %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     fprintf('\nSimulating trial %i...',iter);
-
     gate.Curve = getActionGate(gate.StartTimes(iter),gate.Duration,gate.Floor,gate.Ceiling,warmup,totalT,dt);
-    [spkdata,currdata] = simulation(net,neu,stim,inds,stimuli{iter},gate,S,isModifyWeights,warmup,BinW,timev,silence.curve,saveInputs);
+    [spkdata,currdata] = simulation(net,neu,stim,inds,stimuli{iter},gate.Switch,gate.Curve,S,isModifyWeights,...
+        warmup,BinW,timev,silence.curve,saveInputs,'');
 
     fprintf('Done. ');
     toc(timerStart_trial); %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -433,6 +449,7 @@ for iter = 1:numTrials
         if numTrials<=4, figure(iter+5); else, figure(6); end 
         clf; hold all;
         rasterPlot(firings,inds,indexReMap_inv,clustersWithRoles,totalT,net);
+        xlim(([timev(1),timev(end)]-warmup)/1000);
         title(sprintf('Trial: %i, Stimulus: %s',iter,stimuli{iter}));
         drawnow;
     end
@@ -446,7 +463,7 @@ frLAct_max = max(cellfun(@max,firingRates(:,5)));
 frRAct_max = max(cellfun(@max,firingRates(:,6)));
 frLCue_max = max(cellfun(@max,firingRates(:,3)));
 frRCue_max = max(cellfun(@max,firingRates(:,4)));
-for TR = 1:numTrials    
+for TR = 1:numTrials   
     firingRates_thresh{TR,5} = threshold(firingRates{TR,5},stateThresh*max(frLAct_max,frRAct_max),stateMinTime,binSize);
     firingRates_thresh{TR,6} = threshold(firingRates{TR,6},stateThresh*max(frLAct_max,frRAct_max),stateMinTime,binSize);
     firingRates_thresh{TR,3} = threshold(firingRates{TR,3},stateThresh*max(frLCue_max,frRCue_max),stateMinTime,binSize);
@@ -454,8 +471,8 @@ for TR = 1:numTrials
 end
 
 choices = NaN(numTrials,1);
-bin1 = floor((stim.tStart+bound1)/binSize)+1; 
-bin2 = ceil((stim.tStart+bound2)/binSize);
+bin1 = floor((warmup/1000+stim.tStart+bound1)/binSize)+1; 
+bin2 = ceil((warmup/1000+stim.tStart+bound2)/binSize);
 for trial = 1:numTrials
     if any(firingRates_thresh{trial,5}(bin1:bin2)) && ~any(firingRates_thresh{trial,6}(bin1:bin2))
         choices(trial) = 0;
@@ -464,8 +481,8 @@ for trial = 1:numTrials
     end
 end
 
-fprintf('\nStrict performance by action cluster activation from %.1f to %.1f s (correct/performed/total): %i/%i/%i\n\n',...
-        binSize*(bin1-1),binSize*bin2,sum(choices==corrChoices),sum(~isnan(choices)),numTrials);
+fprintf('\nPerformance by action cluster activation from %.1f to %.1f s (correct/performed/total): %i/%i/%i\n\n',...
+        bound1,bound2,sum(choices==corrChoices),sum(~isnan(choices)),numTrials);
 
 toc(timerStart_total);
 
@@ -898,10 +915,37 @@ CURVE(timeV>=WARMUP+1000*T_START) = min(1/(1000*DURATION)*(0:DT:(TOTAL_T-1000*T_
 CURVE = (CEILING-FLOOR)*CURVE + FLOOR;
 end
 
-function [SPIKE_DATA,INPUT_DATA] = simulation(NET,NEU,STIM,INDS,STIMULUS,GATE,S,IS_MODIFY_WEIGHTS,WARMUP,BIN_W,TIME_V,SILENCING,SAVE_INPUTS)
+function SILENCING_CURVE = getSilencing(START,DURATION,STRENGTH,WARMUP,TOTAL_T,DT,varargin)
+% Construct simulated optogenetic silencing time course as a square pulse
+% input
+% Note: if 'center' is given as the last argument to the function, the
+% first argument will be used as the center time of the pulse, rather than
+% as the start time of the pulse (which is the default behavior ... this is
+% what happens if you leave the last argument out)
+
+timeV = 0:DT:(WARMUP+TOTAL_T);
+if isempty(varargin)
+    % default behavior: use first argument as silencing start time
+    start = START;
+elseif strcmp(varargin{1},'center')
+    % optional behavior: use first argument as silencing center time
+    start = START - DURATION/2;
+else
+    error('Improper syntax. The last argument can only be ''center'' or omitted.');
+end
+SILENCING_CURVE = ones(1,length(timeV));
+SILENCING_CURVE((timeV>=WARMUP+1000*start)&(timeV<=WARMUP+1000*start+1000*DURATION)) = 1 + STRENGTH/100;
+end
+
+function [SPIKE_DATA,INPUT_DATA] = simulation(NET,NEU,STIM,INDS,STIMULUS,GATE_SWITCH,GATE_CURVE,...
+    S,IS_MODIFY_WEIGHTS,WARMUP,BIN_W,TIME_V,SILENCING,SAVE_INPUTS,V0)
 % initialization
 q = 1; fired = []; binfired = [];
-V = 0 + 4*randn(NET.N,1); % initial membrane potential
+if isempty(V0)
+    V = 0 + 4*randn(NET.N,1); % initial membrane potential
+else
+    V = V0;
+end
 tauv = NEU.tauE + 0*V; % membrane time constants
 tauv((1+NET.Ne):NET.N) = NEU.tauI;
 refr = 0*V; 
@@ -932,7 +976,7 @@ if IS_MODIFY_WEIGHTS
     TAUSI(INDS.actRE) = NEU.tauActionI;
 end
 % evolve network over time
-DT = diff(TIME_V(1:2));
+DT = diff(TIME_V(1:2)); 
 for i = 1:length(TIME_V)
     % reset external input
     Iext = Iext0;
@@ -967,9 +1011,9 @@ for i = 1:length(TIME_V)
             INPUT_DATA(c,i) = mean(Itotal(NET.indE(c):(NET.indE(c+1)-1)));
         end
     end
-    if strcmp(GATE.Switch,'on') 
-        ActionGate(INDS.actLE) = GATE.Curve(i);
-        ActionGate(INDS.actRE) = GATE.Curve(i);
+    if strcmp(GATE_SWITCH,'on') 
+        ActionGate(INDS.actLE) = GATE_CURVE(i);
+        ActionGate(INDS.actRE) = GATE_CURVE(i);
         V = V - V*DT./tauv + Itotal.*ActionGate*DT;
     else
         V = V - V*DT./tauv + Itotal*DT;
@@ -1050,13 +1094,4 @@ if ~isempty(inds)
     end
 end
 CURVE_BINARIZED = curve_binarized;
-end
-
-function SILENCING_CURVE = getSilencing(SILENCING_STRUCT,WARMUP,TOTAL_T,DT)
-timeV = 0:DT:(WARMUP+TOTAL_T);
-start = SILENCING_STRUCT.start;
-duration = SILENCING_STRUCT.duration;
-strength = SILENCING_STRUCT.strength;
-SILENCING_CURVE = ones(1,length(timeV));
-SILENCING_CURVE((timeV>=WARMUP+1000*start)&(timeV<=WARMUP+1000*start+1000*duration)) = 1 + strength/100;
 end

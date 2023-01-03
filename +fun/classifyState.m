@@ -18,7 +18,7 @@ function CLASSIFIED_LABEL = classifyState(STATE,MY_CELL,varargin)
 % details.
 %
 % Optional additional arguments can be given as 'Name',Value pairs:
-%     'classificationMode': a number from 1 through 5 that changes
+%     'classificationMode': a number from 1 through 6 that changes
 %                           classification rules (default 3)
 %     'stricterSubclassification': true/false flag for imposing an
 %                                  additional criterion on
@@ -294,7 +294,92 @@ switch CLASSIFICATION_MODE
                 end
             end
         end
-%-----------------------------------------------------------------------------------------------------------------------        
+%-----------------------------------------------------------------------------------------------------------------------  
+    case 6
+        % same as case 3, but includes a more detailed label
+        
+        if ~ismember(STATE,decodedStates)
+            % not decoded --> 'Not decoded'
+            CLASSIFIED_LABEL = 'Not decoded';
+        else
+            % was decoded --> classify the state
+            contTab_ID_Corr = [sum(MY_CELL{1,1}==STATE), MY_CELL{1,2};
+                               sum(MY_CELL{2,1}==STATE), MY_CELL{2,2};
+                               sum(MY_CELL{3,1}==STATE), MY_CELL{3,2};
+                               sum(MY_CELL{4,1}==STATE), MY_CELL{4,2}];
+            contTab_Dec_Corr = [sum([MY_CELL{[1,2],1}]==STATE), sum([MY_CELL{[1,2],2}]);
+                                sum([MY_CELL{[3,4],1}]==STATE), sum([MY_CELL{[3,4],2}])];
+            contTab_Dec_Inc = [sum([MY_CELL{[1,2],3}]==STATE), sum([MY_CELL{[1,2],4}]);
+                               sum([MY_CELL{[3,4],3}]==STATE), sum([MY_CELL{[3,4],4}])];
+            contTab_Tas_Corr = [sum([MY_CELL{[1,3],1}]==STATE), sum([MY_CELL{[1,3],2}]);
+                                sum([MY_CELL{[2,4],1}]==STATE), sum([MY_CELL{[2,4],2}])];
+            prefSB_Corr = diff(contTab_Tas_Corr(:,1)./contTab_Tas_Corr(:,2));
+            if prefSB_Corr > 0
+                preference_quality = 'Bitter';
+            elseif prefSB_Corr < 0
+                preference_quality = 'Sweet';
+            end
+            prefLR_Corr = diff(contTab_Dec_Corr(:,1)./contTab_Dec_Corr(:,2));
+            if prefLR_Corr > 0
+                preference_decision = 'Right';
+            elseif prefLR_Corr < 0
+                preference_decision = 'Left';
+            end
+            prefLR_Inc = diff(contTab_Dec_Inc(:,1)./contTab_Dec_Inc(:,2));
+            prefSwitchLR = prefLR_Corr*prefLR_Inc < 0;
+            prefRetainLR = prefLR_Corr*prefLR_Inc > 0;
+            if fun.chi2test(contTab_ID_Corr) >= 1-(1-0.05)^(1/length(decodedStates))
+                % failed prelim chi-squared --> 'Non-coding'
+                CLASSIFIED_LABEL = 'Non-coding';
+            else
+                % passed prelim chi-squared, now check for ID-coding...
+                res = fun.Marascuilo(contTab_ID_Corr, 1-(1-0.05)^(1/length(decodedStates)));
+                allPostSig = false(1,4);
+                for group = 1:4
+                    [inds,~] = find(res(:,1:2)==group);
+                    allPostSig(group) = all(res(inds,3));
+                end
+                if sum(allPostSig)==1
+                    % passed ID-coding test --> 'ID-coding'
+                    CLASSIFIED_LABEL = 'Taste ID-coding';
+                else
+                    % failed ID-coding test --> check for Decision- and Quality-coding
+                    isDC = fun.chi2test(contTab_Dec_Corr) < 1 - (1 - 0.05)^(1/length(decodedStates));
+                    isQC = fun.chi2test(contTab_Tas_Corr) < 1 - (1 - 0.05)^(1/length(decodedStates));
+                    if isDC && isQC
+                        % Decision- and Quality-coding --> 'Dual-coding'
+                        CLASSIFIED_LABEL = 'Dual-coding';
+                    elseif ~isDC && ~isQC
+                        % not Decision- nor Quality-coding --> 'Non-coding'
+                        CLASSIFIED_LABEL = 'Non-coding';
+                    elseif isQC && ~isDC
+                        % only Quality-coding --> 'Exclusive Quality-coding'
+                        CLASSIFIED_LABEL = sprintf('Exclusive Quality-coding - %s',preference_quality);
+                    elseif isDC && ~isQC
+                        % only Decision-coding --> try to subclassify
+                        if IMPOSE_STRICTER_CRITERIA
+                            % must have at least 10 incorrectly performed trials of
+                            % each cued direction
+                            additionalCriteria = all(contTab_Dec_Inc(:,2)>=10);
+                        else
+                            % no additional criteria (true so you automatically pass)
+                            additionalCriteria = true;
+                        end
+                        if prefSwitchLR && additionalCriteria
+                            % switches preference --> 'Action-coding'
+                            CLASSIFIED_LABEL = sprintf('Action-coding - %s',preference_decision);
+                        elseif prefRetainLR && additionalCriteria
+                            % retains preference --> 'Cue-coding'
+                            CLASSIFIED_LABEL = sprintf('Cue-coding - %s',preference_decision);
+                        else
+                            % no preference is ambiguous ... can't subclassify,
+                            % stick with default --> 'Exclusive Decision-coding'
+                            CLASSIFIED_LABEL = 'Exclusive Decision-coding';
+                        end
+                    end
+                end
+            end
+        end
 end
 
 if IS_VERBOSE

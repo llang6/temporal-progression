@@ -30,16 +30,19 @@
 % /ProcessedData/Simulation/spikes_simX_shuff_circ.mat for X in 245:254
 % /ProcessedData/Simulation/spikes_simX_shuff_colswap.mat for X in 245:254
 % /ProcessedData/Simulation/win_train_simX.mat for X in 245:254
+%
 % requires access to functions:
 % loadVar (in +fun)
 % funHMM (main function in +hmm, which requires several other functions in +aux and +hmm folders)
 
 %% parameters
-expOrSim = 'experiment'; % 'experiment', 'simulation'
-data = 'original'; % 'original', 'shuffled_circular', 'shuffled_swap'
+expOrSim = 'simulation'; % 'experiment', 'simulation'
+data = 'unshuffled'; % 'unshuffled', 'shuffled_circular', 'shuffled_swap'
+stimType = 'strong'; % 'original', 'long', 'strong' (only matters if expOrSim is 'simulation')
+autoSave = false;
 
 %% setup
-homeDir = pwd; addpath(homeDir); % get access to package functions
+addpath(pwd); % get access to package functions
 inputFiles1 = {}; inputFiles2 = {};
 if strcmp(data,'shuffled_circular')
     append = '_shuff_circ';
@@ -49,26 +52,30 @@ else
     append = '';
 end
 if strcmp(expOrSim,'experiment')
-    cd('ProcessedData'); cd('Experiment'); loadDir = pwd; cd(homeDir);
     for i = 1:21
-        inputFiles1 = [inputFiles1,sprintf('spikes_exp%i%s.mat',i,append)];
-        inputFiles2 = [inputFiles2,sprintf('win_train_exp%i.mat',i)];
+        inputFiles1 = [inputFiles1,sprintf('%s/ProcessedData/Experiment/spikes_exp%i%s.mat',pwd,i,append)];
+        inputFiles2 = [inputFiles2,sprintf('%s/ProcessedData/Experiment/win_train_exp%i.mat',pwd,i)];
     end
 elseif strcmp(expOrSim,'simulation')
-    cd('ProcessedData'); cd('Simulation'); loadDir = pwd; cd(homeDir);
+    switch stimType
+        case 'original'
+            append2 = '';
+        case 'long'
+            append2 = '_longStim';
+        case 'strong'
+            append2 = '_strongStim';
+    end
     for i = 245:254
-        inputFiles1 = [inputFiles1,sprintf('spikes_sim%i%s.mat',i,append)];
-        inputFiles2 = [inputFiles2,sprintf('win_train_sim%i.mat',i)];
+        inputFiles1 = [inputFiles1,sprintf('%s/ProcessedData/Simulation/spikes_sim%i%s%s.mat',pwd,i,append,append2)];
+        inputFiles2 = [inputFiles2,sprintf('%s/ProcessedData/Simulation/win_train_sim%i%s.mat',pwd,i,append2)];
     end
 end
 
 %% HMM analysis
 for i = 1:length(inputFiles1)
     % load data 
-    cd(loadDir);
     spikes = fun.loadVar(inputFiles1{i});
     win_train = fun.loadVar(inputFiles2{i});
-    cd(homeDir);
     [ntrials, gnunits] = size(spikes);
     % HMM parameters
     MODELSEL = 'BIC'; % 'XVAL', 'AIC'
@@ -77,10 +84,12 @@ for i = 1:length(inputFiles1)
     res = hmm.funHMM(DATAIN);
     
     % save file
-    %if strcmp(expOrSim,'experiment')
-        %save(sprintf('HMM_exp%i%s.mat',i,append));
-    %elseif strcmp(expOrSim,'simulation')
-        %save(sprintf('HMM_sim%i%s.mat',i+244,append));
-    %end
+    if autoSave
+        if strcmp(expOrSim,'experiment')
+            save(sprintf('%s/HMMData/Experiment/HMM_exp%i%s.mat',pwd,i,append),'res','spikes','win_train');
+        elseif strcmp(expOrSim,'simulation')
+            save(sprintf('%s/HMMData/Simulation/HMM_sim%i%s%s.mat',pwd,i+244,append,append2),'res','spikes','win_train');
+        end
+    end
     
 end

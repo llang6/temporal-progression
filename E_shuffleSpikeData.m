@@ -33,43 +33,38 @@
 % /ProcessedData/Experiment/win_train_expX.mat for X in 1:21
 % /ProcessedData/Simulation/spikes_simX.mat for X in 245:254
 % /ProcessedData/Simulation/win_train_simX.mat for X in 245:254
+%
 % requires access to functions:
 % loadVar (in +fun folder)
 
 %% parameters
 sessionsExp = 1;
 sessionsSim = 245;
-binSize = 0.005; % bin size for swap shuffle
+binSize = 0.005; % bin size for swap shuffle, [s]
 isPlot = true;
 
 %% setup 
-homeDir = pwd; addpath(homeDir); % gives access to helper functions in /+fun
-cd('ProcessedData'); cd('Experiment'); loadDir_exp = pwd; cd(homeDir);
-cd('ProcessedData'); cd('Simulation'); loadDir_sim = pwd; cd(homeDir);
+addpath(pwd); % gives access to helper functions in /+fun
 
 %% shuffle all the data
 % experiment
 for session = sessionsExp
-    cd(loadDir_exp);
-    spikes = fun.loadVar(sprintf('spikes_exp%i.mat',session));
-    win_train = fun.loadVar(sprintf('win_train_exp%i.mat',session));
-    cd(homeDir);
+    spikes = fun.loadVar(sprintf('%s/ProcessedData/Experiment/spikes_exp%i.mat',pwd,session));
+    win_train = fun.loadVar(sprintf('%s/ProcessedData/Experiment/win_train_exp%i.mat',pwd,session));
     [spikes_shuff_circ,spikes_shuff_swap,circMap,swapMap] = main(spikes,win_train,binSize,isPlot);
 
-    %save(sprintf('spikes_exp%i_shuff_circ.mat',session),spikes_shuff_circ);
-    %save(sprintf('spikes_exp%i_shuff_swap.mat',session),spikes_shuff_swap);
+    %save(sprintf('%s/ProcessedData/Experiment/spikes_exp%i_shuff_circ.mat',pwd,session),spikes_shuff_circ);
+    %save(sprintf('%s/ProcessedData/Experiment/spikes_exp%i_shuff_swap.mat',pwd,session),spikes_shuff_swap);
 
 end
 % simulation
 for session = sessionsSim
-    cd(loadDir_sim);
-    spikes = fun.loadVar(sprintf('spikes_sim%i.mat',session));
-    win_train = fun.loadVar(sprintf('win_train_sim%i.mat',session));
-    cd(homeDir);
+    spikes = fun.loadVar(sprintf('%s/ProcessedData/Simulation/spikes_sim%i.mat',pwd,session));
+    win_train = fun.loadVar(sprintf('%s/ProcessedData/Simulation/win_train_sim%i.mat',pwd,session));
     [spikes_shuff_circ,spikes_shuff_swap,circMap,swapMap] = main(spikes,win_train,binSize,isPlot);
     
-    %save(sprintf('spikes_sim%i_shuff_circ.mat',session),spikes_shuff_circ);
-    %save(sprintf('spikes_sim%i_shuff_swap.mat',session),spikes_shuff_swap);
+    %save(sprintf('%s/ProcessedData/Simulation/spikes_sim%i_shuff_circ.mat',pwd,session),spikes_shuff_circ);
+    %save(sprintf('%s/ProcessedData/Simulation/spikes_sim%i_shuff_swap.mat',pwd,session),spikes_shuff_swap);
 
 end
 
